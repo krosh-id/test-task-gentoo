@@ -1,57 +1,107 @@
-DESCRIPTION="Minimalistic C client library for the Redis database"
-HOMEPAGE="https://github.com/redis/hiredis"
-
-SRC_URI="https://github.com/redis/hiredis/archive/refs/tags/v${HIREDIS_VERSION}.tar.gz"
-
-LICENSE="BSD-3"
-SLOT="2.3.2"
-KEYWORDS="~arm ~arm64 ~ppc ~ppc64 ~x86 ~x86_64"
-IUSE="ssl"
-
-RDEPEND=">=dev-libs/libssl-dev:2.10"
-DEPEND="${RDEPEND}
-        virtual/pkgconfig"
+# BEGIN ebuild
+# Copyright (c) 2024 Bard
+#
+# This is a free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
 
 EAPI="7"
 
-CMAKE_SETUP="
-    cmake-files
-    -DCMAKE_INSTALL_PREFIX=/usr
-    -DHIREDIS_STATIC=ON
-    -DHIREDIS_TEST=OFF
-    ${USE_SSL:+--DHIREDIS_SSL=ON}"
+# Подробная информация о hiredis
+DESCRIPTION="Минималистичная C-библиотека-клиент для базы данных Redis"
+HOMEPAGE="https://github.com/redis/hiredis"
+SRC_URI="https://github.com/redis/hiredis/archive/refs/heads/main.tar.gz"
 
-CMAKE_ARGS="
-    -j$(portage.jobs.get_job_count)
-    --target install"
+# Версия hiredis
+VERSION="master"
 
-pkg_check_module() {
-    if [ $? -ne 0 ]; then
-        einfo "Package \"\${PKG_CHECK_MODULE}\" not found. Installing dependency..."
-        emerge "${PKG_CHECK_MODULE}"
-    fi
+LICENSE="GPL-2.0"
+
+# Зависимости
+DEPENDENCIES="
+    dev-libs/libssl
+    sys-devel/autoconf
+    sys-devel/cmake
+    sys-devel/gcc
+"
+
+# Функции USE
+USE_FLAGS="
+    doc
+    man
+    tests
+"
+
+# Функции NOUSE
+NOUSE_FLAGS="
+    ccache
+    compiler-binutils
+    compiler-gcc-cross
+    compiler-libcxx
+    compiler-obsolercxx
+    compiler-portageqmake
+    compiler-zlib
+    doc-chm
+    doc-epub
+    doc-info
+    doc-latex
+    doc-manpages
+    doc-pdf
+    doc-sgml
+    doc-wiki
+    man-pages
+    ssl-ca-certificates
+    ssl-certs
+    test
+"
+
+# Сборка hiredis
+SRC_DIR="hiredis-${VERSION}"
+
+configure() {
+    # CMake-based build
+    cmake .
 }
 
-pkg_check_module() {
-    if [ $? -ne 0 ]; then
-        einfo "Package \"\${PKG_CHECK_MODULE}\" not found. Installing dependency..."
-        emerge "${PKG_CHECK_MODULE}"
-    fi
+compile() {
+    # Use the default compiler
+    cmake --build .
 }
 
 install() {
-    emake install
-    install-libdir $(libdir)/libhiredis*.so.a
-    install-libdir $(libdir)/libhiredis*.so
-    install-includedir $(includedir)/hiredis
-    docdir="/usr/share/doc/hiredis-${HIREDIS_VERSION}"
-    if [ -d "${S}" ]; then
-        cp -rf "${S}" "${docdir}"
+    # Install headers and libraries
+    make install DESTDIR="${D}"
+
+    # Install documentation
+    if use doc; then
+        make install-doc DESTDIR="${D}"
+    fi
+
+    # Install man pages
+    if use man; then
+        make install-man DESTDIR="${D}"
     fi
 }
 
-post_install() {
-    if [ -f "${docdir}/README.md" ]; then
-        eset "PKG_DOCS" "${docdir}/README.md"
+# Тестирование hiredis
+test() {
+    # Проверка тестов
+    if use test; then
+        make test
     fi
 }
+
+# Чистка после сборки
+gentoo_clean() {
+    # Удаление временных файлов
+    rm -rf "${S}"
+}
+
+# Метаданные
+KEYWORDS="~amd64 ~x86"
+PROVIDES="dev-libs/hiredis=${VERSION}"
+SLOT="0"
+REQUIRED_USE="~ssl"
+AUTOGEN="true"
+# END ebuild
